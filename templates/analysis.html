@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Solve{% endblock %}
+
+{% block page_content %}
+<meta charset="utf-8" />
+<div class="page-header">
+    <a href="/download.html">下载最终结果文件</a>
+{% if final_result %}
+    {% for one_result in final_result %}
+
+<h3>第 {{ loop.index }} 题</h3>
+    <h4>高中地理考试题目：</h4>
+        {% for problem in one_result[0] %}
+            {{ problem }}<br>
+        {% endfor %}<br>
+
+    <h4>实体识别结果：</h4>
+        {% for ner in one_result[1] %}
+            {{ ner }}<br>
+        {% endfor %}<br>
+
+    <h4>检索到的相关知识及其相关性打分：</h4>
+        {% for ana in one_result[2] %}
+            {{ ana }}<br>
+        {% endfor %}<br>
+
+    <h4>模型对每个选项的打分：</h4>
+        {{ one_result[3] }}<br><br>
+
+    <h4>模型最终选择的答案：</h4>
+
+        {{ one_result[4] }}<br><br>
+
+        <hr/>
+    {% endfor %}
+{% endif %}
+</div>
+
+{% endblock %}

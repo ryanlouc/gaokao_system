@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Solve{% endblock %}
+
+{% block page_content %}
+<meta charset="utf-8" />
+<meta http-equiv="refresh" content="10">
+<div class="page-header">
+    <h3>
+        解题过程的日志：
+    </h3>
+
+    {% if solve_result %}
+    {% for line in solve_result %}
+        {{ line }}<br>
+    {% endfor %}
+    {% endif %}
+</div>
+
+{% endblock %}
