@@ -1,10 +1,12 @@
 {% extends "base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
 
 {% block title %}Submission{% endblock %}
 
 {% block page_content %}
-<div class="page-header">
+<div class="page-header" style="text-align:center;">
+    <h1>基于神经网络的高中地理自动答题系统</h1>
+</div>
+<div class="page-content">
     <h3>
         提交测试数据应当存放在txt格式文件中，且应当符合符合如下规范：
     </h3>
@@ -29,5 +31,4 @@
         <p><input type=submit value=Upload>
     </form>
 </div>
-
 {% endblock %}

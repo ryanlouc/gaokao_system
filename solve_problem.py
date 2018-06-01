@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import os
 import logging
 import codecs
-import argparse\
+import argparse
 
 import numpy as np
 
+from lexical import lex_func
 from search_knowledge import search_know
 from model_pred import nn_pred
 
@@ -24,7 +25,7 @@ class Model_attribute(object):
         self.reg = reg
 
 
-def model_ensemble(problem_number):
+def model_ensemble(problem_number=8):
     model1_attr = Model_attribute(model_file=MODEL_DIR + 'model1.npz', build_ac=False, attention_type='dot_attention',
                                   sum_type='mlp_sum_layer', loss_type='cross_entropy', reg=0.0001)
     model2_attr = Model_attribute(model_file=MODEL_DIR + 'model2.npz', build_ac=False,
@@ -98,11 +99,17 @@ def model_ensemble(problem_number):
     logging.info("problem solving done!!!")
 
 
-if __name__ == "__main__":
-
+def solve_func():
     logging.basicConfig(filename='data/test.info', filemode='w', level=logging.DEBUG, format='%(asctime)s %(message)s',
                         datefmt='%m-%d %H:%M')
 
-    problem_number = search_know()
-    model_ensemble(problem_number)
+    if not os.path.exists(os.path.abspath("data/test_lexer.json")):
+        lex_func()
+    if not os.path.exists(os.path.abspath("data/test_retrieval.json")):
+        search_know()
+    model_ensemble()
+
+
+if __name__ == "__main__":
+    solve_func()
 

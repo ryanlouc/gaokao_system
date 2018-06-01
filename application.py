@@ -2,7 +2,7 @@
 # -*- coding:UTF-8-*-
 
 
-from flask import Flask, render_template, request, session, send_file, abort
+from flask import Flask, render_template, request, session, send_file, abort, redirect, url_for
 from flask_bootstrap import Bootstrap
 
 
@@ -14,14 +14,14 @@ import json
 import codecs
 import numpy as np
 
+import lexical
+import search_knowledge
+import solve_problem
 
 ALLOWED_EXTENSIONS = set(["txt"])
 
 UPLOAD_PATH = "./data"
-GOLD_PATH = os.path.join(UPLOAD_PATH, "gold/test_y.txt")
 DUMP_PATH = os.path.join(UPLOAD_PATH, "dumps")
-SUBMIT_PATH = os.path.join(UPLOAD_PATH, "submit")
-DUMP_FILE = os.path.join(UPLOAD_PATH, "dump")
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_PATH
@@ -29,36 +29,23 @@ app.config["SECRET_KEY"] = "hahah blablab"
 bootstrap = Bootstrap(app)
 
 
-@app.route("/")
-def overview():
-    return render_template("overview.html")
-
-
-def convert2int(string):
-    return int(datetime.strptime(string, "%Y-%m-%d %H:%M:%S").strftime("%Y%m%d%H%M%S"))
-
-
-def allowed_file(filename):
-    return "." in filename and \
-           filename.rsplit(".", 1)[1] in ALLOWED_EXTENSIONS
-
-
-@app.route("/submission.html", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def submission():
     if request.method == "POST":
         file = request.files["file"]
         if file and allowed_file(file.filename):
+            os.system("rm data/test*")
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], "test.txt")
             file.save(filepath)
 
             session["count"] = 0
             os.system("sh killprocess.sh 'nohup python solve_problem.py &'")
-
+            return redirect(url_for("run"))
     return render_template("submission.html")
 
 
-@app.route("/solve.html")
-def solve():
+@app.route("/run.html")
+def run():
     solve_result = ["waiting for problem-solving log....".encode("utf-8")]
 
     if "count" in session.keys():
@@ -70,7 +57,131 @@ def solve():
         with codecs.open("data/test.info", "r", "utf-8") as f:
             solve_result = f.readlines()
 
-    return render_template("solve.html", solve_result=solve_result)
+    return render_template("run.html", solve_result=solve_result)
+
+
+def convert2int(string):
+    return int(datetime.strptime(string, "%Y-%m-%d %H:%M:%S").strftime("%Y%m%d%H%M%S"))
+
+
+def allowed_file(filename):
+    return "." in filename and \
+           filename.rsplit(".", 1)[1] in ALLOWED_EXTENSIONS
+
+
+@app.route("/lexer.html")
+def lexer():
+    if not os.path.exists(os.path.abspath("data/test_prob_ner.txt")):
+        lexical.lex_func()
+
+    with codecs.open("data/test.txt", "r", "utf-8") as f:
+        probs = [line.strip() for line in f.readlines()]
+
+    with codecs.open("data/test_prob_seg.txt", "r", "utf-8") as f:
+        seg_result = [line.strip() for line in f.readlines()]
+
+    with codecs.open("data/test_prob_ner.txt", "r", "utf-8") as f:
+        ner_result = [line.strip() for line in f.readlines()]
+
+
+    final_result = []
+    problem_number = len(probs) // 6
+    for problem_id in range(problem_number):
+        problem = probs[problem_id*6: problem_id*6+6]
+        seg = seg_result[problem_id*6: problem_id*6+6]
+        ner = ner_result[problem_id*6: problem_id*6+6]
+
+        one_result = []
+        one_result.append(problem)
+        one_result.append(seg)
+        one_result.append(ner)
+
+        final_result.append(one_result)
+
+    with codecs.open("data/test_lexer.json", "w", "utf-8") as f:
+        json.dump(final_result, f)
+
+    return render_template("lexer.html", lexer_result=final_result)
+
+@app.route("/download_lexer.html")
+def download_lexer():
+    if request.method=="GET":
+        if os.path.exists(os.path.abspath("data/test_lexer.json")):
+            return send_file("data/test_lexer.json", as_attachment=True)
+        abort(404)
+
+
+@app.route("/retrieval.html")
+def retrieval():
+    if not os.path.exists(os.path.abspath("data/test_ana_score.txt")):
+        search_knowledge.search_know()
+
+    with codecs.open("data/test.txt", "r", "utf-8") as f:
+        probs = [line.strip() for line in f.readlines()]
+
+    with codecs.open("data/test_ana_score.txt", "r", "utf-8") as f:
+        text_ana_score = [line.strip() for line in f.readlines()]
+
+
+    final_result = []
+    problem_number = len(probs)//6
+    for problem_id in range(problem_number):
+        problem = probs[problem_id*6: problem_id*6+6]
+        ana = extract_ana(text_ana_score[problem_id * 14 + 6: problem_id * 14 + 14])
+
+        one_result = []
+        one_result.append(problem)
+        one_result.append(ana)
+
+        final_result.append(one_result)
+
+    with codecs.open("data/test_retrieval.json", "w", "utf-8") as f:
+        json.dump(final_result, f)
+    return render_template("retrieval.html", retrieval_result=final_result)
+
+
+@app.route("/download_retrieval.html")
+def download_retrieval():
+    if request.method=="GET":
+        if os.path.exists(os.path.abspath("data/test_retrieval.json")):
+            return send_file("data/test_retrieval.json", as_attachment=True)
+        abort(404)
+
+
+@app.route("/solve.html")
+def solve():
+    if not os.path.exists(os.path.abspath("data/test_probs.txt")):
+        os.system("nohup python solve_problem.py &")
+
+    final_result = [[["background" , "query", "choice A", "choice B", "choice C", "choice D"],
+                    "final choice"]]
+    if os.path.exists(os.path.abspath("data/test_probs.txt")):
+        with codecs.open("data/test.txt", "r", "utf-8") as f:
+            probs = [line.strip() for line in f.readlines()]
+
+        with codecs.open("data/test_probs.txt", "r", "utf-8") as f:
+            probs_result = [line.strip() for line in f.readlines()]
+
+        final_result = []
+        problem_number = len(probs)//6
+        for problem_id in range(problem_number):
+            problem = probs[problem_id*6: problem_id*6+6]
+            score, final_choice = extract_choice(probs_result[problem_id])
+
+            one_result = []
+            one_result.append(problem)
+            one_result.append(final_choice)
+
+            final_result.append(one_result)
+    return render_template("solve.html", solve_result=final_result)
+
+
+@app.route("/download_solve.html")
+def download_solve():
+    if request.method=="GET":
+        if os.path.exists(os.path.abspath("data/test_solve.json")):
+            return send_file("data/test_solve.json", as_attachment=True)
+        abort(404)
 
 
 def extract_problem(sentence):
@@ -105,12 +216,16 @@ def extract_choice(sentence):
 @app.route("/analysis.html")
 def analysis():
     final_result = [[["background" , "query", "choice A", "choice B", "choice C", "choice D"],
+                     ["background_seg", "query_seg", "choice A_seg", "choice B_seg", "choice C_seg", "choice D_seg"],
                      ["background_ner" , "query_ner", "choice A_ner", "choice B_ner", "choice C_ner", "choice D_ner"],
                      ["score", "score", "score", "score", "score", "score", "score", "score",], "four score", "final choice"]]
-    if os.path.exists(os.path.abspath("data/test_probs.txt")):
 
-        with codecs.open("data/test_probs.txt", "r", "utf-8") as f:
-            probs_result = [line.strip() for line in f.readlines()]
+    if os.path.exists(os.path.abspath("data/test_probs.txt")):
+        with codecs.open("data/test.txt", "r", "utf-8") as f:
+            probs = [line.strip() for line in f.readlines()]
+
+        with codecs.open("data/test_prob_seg.txt", "r", "utf-8") as f:
+            seg_result = [line.strip() for line in f.readlines()]
 
         with codecs.open("data/test_prob_ner.txt", "r", "utf-8") as f:
             ner_result = [line.strip() for line in f.readlines()]
@@ -118,16 +233,21 @@ def analysis():
         with codecs.open("data/test_ana_score.txt", "r", "utf-8") as f:
             text_ana_score = [line.strip() for line in f.readlines()]
 
+        with codecs.open("data/test_probs.txt", "r", "utf-8") as f:
+            probs_result = [line.strip() for line in f.readlines()]
+
         final_result = []
-        problem_number = len(probs_result)
+        problem_number = len(probs) // 6
         for problem_id in range(problem_number):
-            problem = extract_problem(text_ana_score[problem_id * 14: problem_id * 14 + 6])
-            ner = ner_result[problem_id*6: problem_id*6+6]
+            problem = probs[problem_id*6: problem_id*6+6]
+            seg = seg_result[problem_id * 6: problem_id * 6 + 6]
+            ner = ner_result[problem_id * 6: problem_id * 6 + 6]
             ana = extract_ana(text_ana_score[problem_id * 14 + 6: problem_id * 14 + 14])
             score, final_choice = extract_choice(probs_result[problem_id])
 
             one_result = []
             one_result.append(problem)
+            one_result.append(seg)
             one_result.append(ner)
             one_result.append(ana)
             one_result.append(score)
@@ -135,17 +255,17 @@ def analysis():
 
             final_result.append(one_result)
 
-        with codecs.open("data/test_final_result.txt", "w", "utf-8") as f:
+        with codecs.open("data/test_analysis.json", "w", "utf-8") as f:
             json.dump(final_result, f)
 
-    return render_template("analysis.html", final_result=final_result)
+    return render_template("analysis.html", analysis_result=final_result)
 
 
-@app.route("/download.html")
-def download():
+@app.route("/download_analysis.html")
+def download_analysis():
     if request.method=="GET":
-        if os.path.exists(os.path.abspath("data/test_final_result.json")):
-            return send_file("data/test_final_result.json", as_attachment=True)
+        if os.path.exists(os.path.abspath("data/test_analysis.json")):
+            return send_file("data/test_analysis.json", as_attachment=True)
         abort(404)
 
 

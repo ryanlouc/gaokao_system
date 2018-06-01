@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Lexer{% endblock %}
+
+{% block page_content %}
+<meta charset="utf-8" />
+<div class="page-header" style="text-align:center;">
+    <h1>基于神经网络的高中地理自动答题系统</h1>
+</div>
+<div class="page-content">
+    <a href="/download_lexer.html">下载词法分析结果</a>
+
+    {% if lexer_result %}
+        {% for one_result in lexer_result %}
+
+    <h3>第 {{ loop.index }} 题</h3>
+        <h4>高中地理考试题目：</h4>
+            {% for problem in one_result[0] %}
+                {{ problem }}<br>
+            {% endfor %}<br>
+
+        <h4>试题分词结果：</h4>
+            {% for seg in one_result[1] %}
+                {{ seg }}<br>
+            {% endfor %}<br>
+
+        <h4>实体识别结果：</h4>
+            {% for ner in one_result[2] %}
+                {{ ner }}<br>
+            {% endfor %}<br>
+
+        <hr/>
+    {% endfor %}
+{% endif %}
+</div>
+{% endblock %}

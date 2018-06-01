@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
-{% block title %}Solve{% endblock %}
+{% block title %}Retrieval{% endblock %}
 
 {% block page_content %}
 <meta charset="utf-8" />
@@ -9,9 +9,10 @@
     <h1>基于神经网络的高中地理自动答题系统</h1>
 </div>
 <div class="page-content">
-    <a href="/download_solve.html">下载试题预测选项结果</a>
- {% if solve_result %}
-    {% for one_result in solve_result %}
+    <a href="/download_retrieval.html">下载知识检索结果</a>
+
+    {% if retrieval_result %}
+    {% for one_result in retrieval_result %}
 
 <h3>第 {{ loop.index }} 题</h3>
     <h4>高中地理考试题目：</h4>
@@ -19,13 +20,13 @@
             {{ problem }}<br>
         {% endfor %}<br>
 
-    <h4>模型给出的答案：</h4>
-
-        {{ one_result[1] }}<br><br>
+    <h4>检索到的相关知识及其相关性打分：</h4>
+        {% for ana in one_result[1] %}
+            {{ ana }}<br>
+        {% endfor %}<br>
 
         <hr/>
     {% endfor %}
 {% endif %}
 </div>
-
 {% endblock %}

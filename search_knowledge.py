@@ -10,26 +10,36 @@ import jieba
 
 from gensim import corpora, models, similarities
 
-def cws(filename):
-    with codecs.open(filename, "r", "utf-8") as f:
+# def cws(filename):
+#     with codecs.open(filename, "r", "utf-8") as f:
+#         data = [eachLine.strip() for eachLine in f.readlines()]
+#         data_seg = [[word for word in jieba.cut(eachLine)] for eachLine in data]
+#
+#     return data, data_seg
+
+def load_file(in_file_path, seg_file_path):
+    with codecs.open(in_file_path, "r", "utf-8") as f:
         data = [eachLine.strip() for eachLine in f.readlines()]
-        data_seg = [[word for word in jieba.cut(eachLine)] for eachLine in data]
+
+    with codecs.open(seg_file_path, "r", "utf-8") as f:
+        data_seg = [[word for word in eachLine.strip().split(" ")] for eachLine in f.readlines()]
 
     return data, data_seg
 
+def search_know(test_file_path="data/test.txt", test_seg_file_path="data/test_prob_seg.txt",
+                knowledge_file_path="data/gold/knowledge.txt", knowledge_seg_file_path="data/gold/knowledge_seg.txt",
+                output_file_path="data/test_ana_score.txt", ana_num=8):
 
-def search_know(problem_filename="data/test.txt", knowledge_filename="data/gold/knowledge.txt",
-                                   output_filename="data/test_ana_score.txt", ana_num=8):
-    with codecs.open(problem_filename, "r", "utf-8") as f:
-        problem_raw = f.readlines()
+    # if len(problem_raw) % 6 != 0:
+    #     logging.error("please submit a valid file! The length of the problems is {}，not a multiple of 6".format(len(problem_raw)))
+    #     os._exit(1)
 
-    if len(problem_raw) % 6 != 0:
-        logging.error("please submit a valid file! The length of the problems is {}，not a multiple of 6".format(len(problem_raw)))
-        os._exit(1)
+    # logging.info("search related knowledge for {}".format(problem_filename))/
+    if not os.path.exists(os.path.abspath(test_seg_file_path)):
+        os.system("nohup python lexical.py &")
 
-    logging.info("search related knowledge for {}".format(problem_filename))
-    problem, problem_seg = cws(problem_filename)
-    knowledge, knowledge_seg = cws(knowledge_filename)
+    problem, problem_seg = load_file(test_file_path, test_seg_file_path)
+    knowledge, knowledge_seg = load_file(knowledge_file_path, knowledge_seg_file_path)
 
     question_background_seg = [problem_seg[i] + problem_seg[i + 1] for i in range(0, len(problem_seg), 6)]
 
@@ -58,14 +68,14 @@ def search_know(problem_filename="data/test.txt", knowledge_filename="data/gold/
         output.extend(knowledge_related)
 
     logging.info("len(ques and ana): {}".format(len(output)))
-    with codecs.open(output_filename, "w", "utf-8") as f:
+    with codecs.open(output_file_path, "w", "utf-8") as f:
         for line in output:
             f.write(" ".join(line) + "\n")
 
     split_problem_knowledge()
-    logging.info("named entity recognition begin......")
-    os.system("sh ner.sh /home/louc/graduation_design/data/test_prob_seg.txt /home/louc/graduation_design/data/test_prob_ner.txt")
-    logging.info("named entity recognition done!")
+    # logging.info("named entity recognition begin......")
+    # os.system("sh ner.sh /home/louc/graduation_design/data/test_prob_seg.txt /home/louc/graduation_design/data/test_prob_ner.txt")
+    # logging.info("named entity recognition done!")
     return problem_number
 
 
@@ -94,8 +104,12 @@ def split_problem_knowledge(filename="data/test_ana_score.txt", ana_num=8):
             ana.append(data[i])
 
     logging.info("problem len: {}, ana len: {}".format(len(problem), len(ana)))
-    with codecs.open("data/test_prob_seg.txt", "w", "utf-8") as f:
-        f.writelines(problem)
+    # with codecs.open("data/test_prob_seg.txt", "w", "utf-8") as f:
+    #     f.writelines(problem)
 
     with codecs.open("data/test_ana_seg.txt", "w", "utf-8") as f:
         f.writelines(ana)
+
+
+if __name__ == "__main__":
+    search_know()
