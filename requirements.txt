@@ -20,7 +20,7 @@ idna==2.6
 ipaddress==1.0.22
 itsdangerous==0.24
 jieba==0.39
-Jinja2==2.10
+Jinja2==2.11.3
 jmespath==0.9.3
 Lasagne==0.1
 MarkupSafe==1.0
