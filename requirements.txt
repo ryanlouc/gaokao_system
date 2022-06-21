@@ -24,7 +24,7 @@ Jinja2==2.10
 jmespath==0.9.3
 Lasagne==0.1
 MarkupSafe==1.0
-numpy==1.14.3
+numpy==1.22.0
 pycosat==0.6.3
 pycparser==2.18
 pyOpenSSL==18.0.0
